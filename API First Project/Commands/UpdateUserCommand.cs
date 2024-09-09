@@ -1,11 +1,11 @@
 ﻿using API_First_Project.Enums;
 using System.ComponentModel.DataAnnotations;
-namespace API_First_Project.Models
+
+namespace API_First_Project.Commands
 {
-    public class User
+    public class UpdateUserCommand
     {
-        [Key]
-        public int Id { get; set; }
+       
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
@@ -26,7 +26,5 @@ namespace API_First_Project.Models
         [MinLength(10)]
         [Phone]
         public string PhoneNumber { get; set; } = string.Empty;
-
-
     }
 }

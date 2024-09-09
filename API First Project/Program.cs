@@ -15,6 +15,8 @@ builder.Services.AddDbContext<TestingDbContext>(option =>
     option.UseSqlServer(builder.Configuration.GetConnectionString("conn")).UseLazyLoadingProxies();
 });
 
+//builder.Services.AddScoped<IUserRepository, UserRepository>();  // Registering the Interface and the corresponding Repository
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
