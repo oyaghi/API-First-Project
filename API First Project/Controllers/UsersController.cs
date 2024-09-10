@@ -10,21 +10,27 @@ using API_First_Project.Models;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using API_First_Project.Mappers;
 using API_First_Project.Commands;
+using API_First_Project.IUnitOfWork;
 
 namespace API_First_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController(TestingDbContext context) : ControllerBase
+    public class UsersController: ControllerBase
     {
 
-        private readonly TestingDbContext _context = context;
+        private readonly IUnitOfWorks _unitOfWork;
+
+        public UsersController(IUnitOfWorks unitOfWork)
+        {
+            _unitOfWork = unitOfWork;
+        }
 
         // GET: api/Users
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            var users = await _context.users.ToListAsync();
+            var users = await  _unitOfWork.Users.GetAllAsync();
             var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
 
             return Ok(userDtos);
@@ -38,7 +44,7 @@ namespace API_First_Project.Controllers
         [HttpGet("{Id}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var user = await _context.users.SingleOrDefaultAsync(x => x.Id == id);
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
@@ -55,7 +61,8 @@ namespace API_First_Project.Controllers
         public async Task<IActionResult> Create([FromBody] CreateUsersCommand command)
         {
             // Add Unique Email Validation
-            if (_context.users.Any(u => u.PhoneNumber == command.PhoneNumber))
+            var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
+            if (phoneExists!= null)
             {
                 return BadRequest("PhneNumber already exists in the database");
             }
@@ -69,8 +76,8 @@ namespace API_First_Project.Controllers
                 Gender = command.Gender,
             };
 
-            await _context.users.AddAsync(user);
-            _context.SaveChanges();
+            await _unitOfWork.Users.AddAsync(user);
+            await _unitOfWork.CompleteAsync();
 
             return Ok(user);
         }
@@ -82,18 +89,18 @@ namespace API_First_Project.Controllers
         /// <param name="command"></param>
         /// <returns>Ok200 if the user updated successfully</returns>
         [HttpPut("{id}")]
-        public IActionResult Update([FromRoute] int id, [FromBody] UpdateUserCommand command)
+        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserCommand command)
         {
-            var user = _context.users.SingleOrDefault(x => x.Id == id);
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
             if (user == null)
             {
-
                 return NotFound();
             }
 
             if (user.PhoneNumber != command.PhoneNumber)
             {
-                if (_context.users.Any(u => u.PhoneNumber == command.PhoneNumber))
+                var phoneExists = await _unitOfWork.Users.FindAsync(u=> u.PhoneNumber == command.PhoneNumber);
+                if (phoneExists!= null)
                 {
                     return BadRequest("PhneNumber already exists in the database");
                 }
@@ -102,7 +109,8 @@ namespace API_First_Project.Controllers
 
             if (user.Email != command.Email)
             {
-                if (_context.users.Any(u => u.Email == command.Email))
+                var emailExists = await _unitOfWork.Users.FindAsync(u => u.Email == command.Email);
+                if (emailExists != null )
                 {
                     return BadRequest("Email already exists in the database");
                 }
@@ -114,8 +122,8 @@ namespace API_First_Project.Controllers
             user.Gender = command.Gender;
             user.Email = command.Email;
 
-            //_context.Update(user);
-            _context.SaveChanges();
+            _unitOfWork.Users.Update(user);
+            await _unitOfWork.CompleteAsync();
             return Ok(user);
 
 
@@ -124,14 +132,14 @@ namespace API_First_Project.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var user = await _context.users.SingleAsync(u => u.Id == id);
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
 
-            _context.Remove(user);
-            _context.SaveChanges();
+            _unitOfWork.Users.Delete(user);
+            await _unitOfWork.CompleteAsync();
             return Ok();
         }
 
