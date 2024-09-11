@@ -4,21 +4,18 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using API_First_Project.Data;
-using API_First_Project.Models;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using API_First_Project.Mappers;
 using API_First_Project.Commands;
 using API_First_Project.IUnitOfWork;
+using API_First_Project.Dtos;
+using API_First_Project.Models;
 
 namespace API_First_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController: ControllerBase
+    public class UsersController : ControllerBase
     {
-
         private readonly IUnitOfWorks _unitOfWork;
 
         public UsersController(IUnitOfWorks unitOfWork)
@@ -28,120 +25,162 @@ namespace API_First_Project.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            var users = await  _unitOfWork.Users.GetAllAsync();
-            var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
+            try
+            {
+                var users = await _unitOfWork.Users.GetAllAsync();
+                if (users == null || !users.Any())
+                {
+                    return NotFound("No users found.");
+                }
 
-            return Ok(userDtos);
+                var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
+                return Ok(userDtos);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving users.");
+            }
         }
-        /// <summary>
-        /// Returns the specified user 
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns>Ok200 user</returns>
+
         // GET: api/Users/1
-        [HttpGet("{Id}")]
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            var user = await _unitOfWork.Users.GetByIdAsync(id);
-            if (user == null)
+            try
             {
-                return NotFound();
-            }
-            return Ok(UsersMapper.ToUserDto(user));
+                var user = await _unitOfWork.Users.GetByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound("User not found. Check the ID and try again.");
+                }
 
+                return Ok(UsersMapper.ToUserDto(user));
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving the user.");
+            }
         }
-        /// <summary>
-        /// Create a new User 
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns>Created user information</returns>
+
+        // POST: api/Users
         [HttpPost]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create([FromBody] CreateUsersCommand command)
         {
-            // Add Unique Email Validation
-            var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
-            if (phoneExists!= null)
+            try
             {
-                return BadRequest("PhneNumber already exists in the database");
+                // Add Unique PhoneNumber Validation
+                var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
+                if (phoneExists.Any())
+                {
+                    return BadRequest("Phone number already exists.");
+                }
+
+                var user = new User
+                {
+                    Email = command.Email,
+                    FirstName = command.FirstName,
+                    Lastname = command.Lastname,
+                    PhoneNumber = command.PhoneNumber,
+                    Gender = command.Gender,
+                };
+
+                await _unitOfWork.Users.AddAsync(user);
+                await _unitOfWork.CompleteAsync();
+
+                var userDto = UsersMapper.ToUserDto(user);
+                return CreatedAtAction(nameof(GetById), new { id = user.Id }, userDto);
             }
-
-            var user = new User
+            catch (Exception)
             {
-                Email = command.Email,
-                FirstName = command.FirstName,
-                Lastname = command.Lastname,
-                PhoneNumber = command.PhoneNumber,
-                Gender = command.Gender,
-            };
-
-            await _unitOfWork.Users.AddAsync(user);
-            await _unitOfWork.CompleteAsync();
-
-            return Ok(user);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the user.");
+            }
         }
 
-        /// <summary>
-        /// Update the user partially and Fully
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="command"></param>
-        /// <returns>Ok200 if the user updated successfully</returns>
+        // PUT: api/Users/1
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserCommand command)
         {
-            var user = await _unitOfWork.Users.GetByIdAsync(id);
-            if (user == null)
+            try
             {
-                return NotFound();
-            }
-
-            if (user.PhoneNumber != command.PhoneNumber)
-            {
-                var phoneExists = await _unitOfWork.Users.FindAsync(u=> u.PhoneNumber == command.PhoneNumber);
-                if (phoneExists!= null)
+                var user = await _unitOfWork.Users.GetByIdAsync(id);
+                if (user == null)
                 {
-                    return BadRequest("PhneNumber already exists in the database");
+                    return NotFound("User not found. Check the ID and try again.");
                 }
-            }
 
-
-            if (user.Email != command.Email)
-            {
-                var emailExists = await _unitOfWork.Users.FindAsync(u => u.Email == command.Email);
-                if (emailExists != null )
+                if (user.PhoneNumber != command.PhoneNumber)
                 {
-                    return BadRequest("Email already exists in the database");
+                    var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
+                    if (phoneExists.Any())
+                    {
+                        return BadRequest("Phone number already exists.");
+                    }
                 }
+
+                if (user.Email != command.Email)
+                {
+                    var emailExists = await _unitOfWork.Users.FindAsync(u => u.Email == command.Email);
+                    if (emailExists.Any())
+                    {
+                        return BadRequest("Email already exists.");
+                    }
+                }
+
+                user.FirstName = command.FirstName;
+                user.Lastname = command.Lastname;
+                user.PhoneNumber = command.PhoneNumber;
+                user.Gender = command.Gender;
+                user.Email = command.Email;
+
+                _unitOfWork.Users.Update(user);
+                await _unitOfWork.CompleteAsync();
+
+                return Ok(UsersMapper.ToUserDto(user));
             }
-
-            user.FirstName = command.FirstName;
-            user.Lastname = command.Lastname;
-            user.PhoneNumber = command.PhoneNumber;
-            user.Gender = command.Gender;
-            user.Email = command.Email;
-
-            _unitOfWork.Users.Update(user);
-            await _unitOfWork.CompleteAsync();
-            return Ok(user);
-
-
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the user.");
+            }
         }
 
+        // DELETE: api/Users/1
         [HttpDelete("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var user = await _unitOfWork.Users.GetByIdAsync(id);
-            if (user == null)
+            try
             {
-                return NotFound();
+                var user = await _unitOfWork.Users.GetByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound("User not found. Check the ID and try again.");
+                }
+
+                _unitOfWork.Users.Delete(user);
+                await _unitOfWork.CompleteAsync();
+                return Ok("User successfully deleted.");
             }
-
-            _unitOfWork.Users.Delete(user);
-            await _unitOfWork.CompleteAsync();
-            return Ok();
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the user.");
+            }
         }
-
     }
 }
