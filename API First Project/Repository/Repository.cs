@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace API_First_Project.Repository
@@ -43,10 +44,19 @@ namespace API_First_Project.Repository
             _dbSet.Remove(entity);
         }
 
-        public async Task<IEnumerable<T>> FindAsync(Func<T, bool> predicate)
+   
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter,Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
         {
-            // TODO : Find better way
-            return await Task.Run(() => _dbSet.AsEnumerable().Where(predicate));
+            IQueryable<T> query = _dbSet.Where(filter);
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            return await query.ToListAsync();
         }
     }
 }
+
+

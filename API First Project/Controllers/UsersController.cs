@@ -9,6 +9,7 @@ using API_First_Project.Commands;
 using API_First_Project.Dtos;
 using API_First_Project.Models;
 using API_First_Project.IUnitOfWork;
+using Microsoft.EntityFrameworkCore;
 
 namespace API_First_Project.Controllers
 {
@@ -39,7 +40,6 @@ namespace API_First_Project.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id);
@@ -63,7 +63,16 @@ namespace API_First_Project.Controllers
             var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
             if (phoneExists.Any())
             {
-                return BadRequest();
+                return BadRequest(new
+                {
+                    Message = "Validation failed.",
+                    Details = "Review the errors and correct them",
+                    Errors = new Dictionary<string, string>
+                    {
+                        { "phoneNumber", "Phone number exists in the database, it has to be unique" },
+
+                    }
+                });
             }
 
             var user = new User
@@ -100,7 +109,15 @@ namespace API_First_Project.Controllers
                 var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
                 if (phoneExists.Any())
                 {
-                    return BadRequest();
+                    return BadRequest(new
+                    {
+                        Message = "Validation failed.",
+                        Details = "Review the errors and correct them",
+                        Errors = new Dictionary<string, string>
+                        {
+                            { "phoneNumber", "Phone number exists in the database, it has to be unique" }
+                        }
+                    });
                 }
             }
 
@@ -109,7 +126,15 @@ namespace API_First_Project.Controllers
                 var emailExists = await _unitOfWork.Users.FindAsync(u => u.Email == command.Email);
                 if (emailExists.Any())
                 {
-                    return BadRequest();
+                    return BadRequest(new
+                    {
+                        Message = "Validation failed.",
+                        Details = "Review the errors and correct them",
+                        Errors = new Dictionary<string, string>
+                        {
+                            { "Email", "Email address exists in the database, it has to be unique" }
+                        }
+                    });
                 }
             }
 
@@ -142,5 +167,25 @@ namespace API_First_Project.Controllers
             return Ok("User successfully deleted.");
 
         }
+        
+        [HttpGet]
+        [Route("/test")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetFilterOrderBy()
+        {
+            var users = await _unitOfWork.Users.FindAsync(
+                u => u.Lastname == "yaghi",
+                o => o.OrderBy(u => u.FirstName)
+            );
+
+            return Ok(users);
+        }
+
+        [HttpGet("throw")]
+        public IActionResult ThrowException()
+        {
+            throw new Exception("This is a test exception to check exception handling middleware.");
+        }
     }
 }
+
+

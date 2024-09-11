@@ -1,4 +1,6 @@
-﻿namespace API_First_Project.IRepository
+﻿using System.Linq.Expressions;
+
+namespace API_First_Project.IRepository
 {
     public interface IRepository<T> where T : class
     {
@@ -12,6 +14,7 @@
 
         void Delete(T entity);
 
-        Task<IEnumerable<T>> FindAsync(Func<T, bool> predicate);
+        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
+
     }
 }
