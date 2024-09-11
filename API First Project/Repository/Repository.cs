@@ -23,7 +23,7 @@ namespace API_First_Project.Repository
             return await _dbSet.FindAsync(id);
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
+        public async Task<IEnumerable<T>> GetAsync()
         {
             return await _dbSet.ToListAsync();
         }
@@ -45,6 +45,7 @@ namespace API_First_Project.Repository
 
         public async Task<IEnumerable<T>> FindAsync(Func<T, bool> predicate)
         {
+            // TODO : Find better way
             return await Task.Run(() => _dbSet.AsEnumerable().Where(predicate));
         }
     }

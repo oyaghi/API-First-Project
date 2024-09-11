@@ -6,20 +6,20 @@ using Microsoft.EntityFrameworkCore;
 namespace API_First_Project.UnitOfWork
 
 {
-    public class UnitOfWork:  API_First_Project.IUnitOfWork.IUnitOfWorks
+    public class UnitOfWork : IUnitOfWork.IUnitOfWorks
     {
         private readonly DbContext _context;
 
         public IRepository<User> Users { get; private set; }
-      
+
         public UnitOfWork(DbContext context)
         {
             _context = context;
             Users = new Repository<User>(_context);
-           
+
         }
 
-        public async Task<int> CompleteAsync()
+        public async Task<int> SaveAsync()
         {
             return await _context.SaveChangesAsync();
         }
