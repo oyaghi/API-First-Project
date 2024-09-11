@@ -1,5 +1,5 @@
-using API_First_Project.Data;
-using API_First_Project.IUnitOfWork;
+using Core.IUnitOfWork;
+using Infrastructure.Data;
 using API_First_Project.Middlewares;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,12 +18,14 @@ builder.Services.AddDbContext<TestingDbContext>(option =>
     option.UseSqlServer(builder.Configuration.GetConnectionString("conn")).UseLazyLoadingProxies();
 });
 
-builder.Services.AddScoped<IUnitOfWorks, UnitOfWork>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+// Configure Cashing
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 

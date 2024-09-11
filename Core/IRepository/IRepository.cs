@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace API_First_Project.IRepository
+namespace Core.IRepository
 {
     public interface IRepository<T> where T : class
     {
@@ -15,6 +15,8 @@ namespace API_First_Project.IRepository
         void Delete(T entity);
 
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
+
+        Task<T?> FindSingleAsync(Expression<Func<T, bool>> filter);
 
     }
 }

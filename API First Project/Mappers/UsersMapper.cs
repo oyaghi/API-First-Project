@@ -1,5 +1,5 @@
-﻿using API_First_Project.Dtos;
-using API_First_Project.Models;
+﻿using Core.Models;
+using API_First_Project.Dtos;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace API_First_Project.Mappers

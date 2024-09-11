@@ -4,39 +4,38 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using API_First_Project.Mappers;
+using Core.Models;
+using Microsoft.EntityFrameworkCore;
+using Infrastructure.Data;
+using Core.IUnitOfWork;
 using API_First_Project.Commands;
 using API_First_Project.Dtos;
-using API_First_Project.Models;
-using API_First_Project.IUnitOfWork;
-using Microsoft.EntityFrameworkCore;
+using API_First_Project.Mappers;
 
 namespace API_First_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController(IUnitOfWorks unitOfWork) : ControllerBase
+    public class UsersController(IUnitOfWork unitOfWork) : ControllerBase
     {
-        private readonly IUnitOfWorks _unitOfWork = unitOfWork;
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        // GET: api/Users
         [HttpGet]
         [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<UserDto>>> Get()
         {
-
             var users = await _unitOfWork.Users.GetAsync();
-            if (users == null || !users.Any())
-            {
-                return NotFound("No users found.");
-            }
 
             var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
-            return Ok(userDtos);
+            return Ok(new
+            {
+                Users = userDtos,
+                UserWithTenant = userDtos,
+                Status = "Haaasdas"
+            });
         }
 
-        // GET: api/Users/1
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
@@ -52,7 +51,6 @@ namespace API_First_Project.Controllers
 
         }
 
-        // POST: api/Users
         [HttpPost]
         [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -63,6 +61,8 @@ namespace API_First_Project.Controllers
             var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
             if (phoneExists.Any())
             {
+                //return BadRequest("PHONE_ALREADY_EXSIST", "Phone number exists in the database, it has to be unique");
+
                 return BadRequest(new
                 {
                     Message = "Validation failed.",
@@ -70,7 +70,6 @@ namespace API_First_Project.Controllers
                     Errors = new Dictionary<string, string>
                     {
                         { "phoneNumber", "Phone number exists in the database, it has to be unique" },
-
                     }
                 });
             }
@@ -91,7 +90,6 @@ namespace API_First_Project.Controllers
             return CreatedAtAction(nameof(GetById), new { id = user.Id }, userDto);
         }
 
-        // PUT: api/Users/1
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -106,8 +104,8 @@ namespace API_First_Project.Controllers
 
             if (user.PhoneNumber != command.PhoneNumber)
             {
-                var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
-                if (phoneExists.Any())
+                var phoneExists = await _unitOfWork.Users.FindSingleAsync(u => u.PhoneNumber == command.PhoneNumber);
+                if (phoneExists != null)
                 {
                     return BadRequest(new
                     {
@@ -164,10 +162,10 @@ namespace API_First_Project.Controllers
 
             _unitOfWork.Users.Delete(user);
             await _unitOfWork.SaveAsync();
-            return Ok("User successfully deleted.");
 
+            return Ok();
         }
-        
+
         [HttpGet]
         [Route("/test")]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetFilterOrderBy()

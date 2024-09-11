@@ -1,11 +1,11 @@
-﻿using API_First_Project.Enums;
+﻿using Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace API_First_Project.Dtos
 {
     public class UserDto
     {
-       
+
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
@@ -13,7 +13,7 @@ namespace API_First_Project.Dtos
         [MaxLength(155)]
         [MinLength(3)]
         public string FirstName { get; set; } = string.Empty;
-       
+
         [Required]
         [MaxLength(10)]
         [MinLength(10)]

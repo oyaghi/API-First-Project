@@ -1,7 +1,7 @@
-﻿using API_First_Project.Models;
+﻿using Core.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace API_First_Project.Data
+namespace Infrastructure.Data
 {
     /*
      * DbContext
@@ -16,8 +16,8 @@ namespace API_First_Project.Data
         {
 
         }
-        
-     public DbSet<User> users { get; set; }
+
+        public DbSet<User> users { get; set; }
 
         // Lazy loading Config 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

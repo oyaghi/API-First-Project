@@ -1,10 +1,10 @@
-﻿using API_First_Project.Data;
-using API_First_Project.IRepository;
-using API_First_Project.IUnitOfWork;
-using API_First_Project.Models;
-using API_First_Project.Repository;
+﻿using Core.IRepository;
+using Core.IUnitOfWork;
+using Core.Models;
+using Infrastructure.Repository;
+using Infrastructure.Data;
 
-public class UnitOfWork : IUnitOfWorks
+public class UnitOfWork : IUnitOfWork
 {
     private readonly TestingDbContext _context;
 

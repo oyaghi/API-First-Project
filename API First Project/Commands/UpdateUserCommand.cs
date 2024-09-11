@@ -1,11 +1,11 @@
-﻿using API_First_Project.Enums;
+﻿using Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace API_First_Project.Commands
 {
     public class UpdateUserCommand
     {
-       
+
         [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;

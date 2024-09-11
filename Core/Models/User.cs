@@ -1,6 +1,6 @@
-﻿using API_First_Project.Enums;
+﻿using Core.Enums;
 using System.ComponentModel.DataAnnotations;
-namespace API_First_Project.Models
+namespace Core.Models
 {
     public class User
     {
