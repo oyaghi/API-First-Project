@@ -19,12 +19,12 @@
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An unexpected error occurred");
+                _logger.LogError(ex, "An error occurred while processing the request.");
 
                 var response = new
                 {
-                    Message = "Something went wrong. Please try again later.",
-                    Details = "An unexpected error occurred. If the problem persists, please contact Mr Abdullah Yaghi If AVAILABLE."
+                    Error = "An unexpected error occurred. Please try again later.",
+                    Details = ex.Message // Log only the exception message
                 };
 
                 context.Response.ContentType = "application/json";
@@ -34,4 +34,5 @@
             }
         }
     }
+
 }

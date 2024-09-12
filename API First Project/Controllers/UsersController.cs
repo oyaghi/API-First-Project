@@ -28,7 +28,7 @@ namespace API_First_Project.Controllers
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly IConfiguration _config = config;
 
-        [Authorize]
+        //[Authorize]
         [HttpGet]
         [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
@@ -69,36 +69,8 @@ namespace API_First_Project.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var errors = ModelState
-                   .Where(ms => ms.Value?.Errors.Count > 0)
-                   .ToDictionary(
-                       kvp => kvp.Key,
-                       kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).FirstOrDefault()
-                   );
-
-                return BadRequest(new
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Error happened in validating data",
-                    Error = errors
-                });
+                return BadRequest(ModelState);
             }
-
-            // Add Unique PhoneNumber Validation
-            var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
-            if (phoneExists.Any())
-            {
-                Dictionary<string, string> errors  = new Dictionary<string, string>();
-                errors.Add("PHONE_NUMBER", "Phone number exists in the database");
-
-                return BadRequest(new
-                {
-                    Status = StatusCodes.Status400BadRequest,
-                    Message = "Error in validating data",
-                    Error =  errors
-                });
-            }
-
             var user = new User
             {
                 Email = command.Email,

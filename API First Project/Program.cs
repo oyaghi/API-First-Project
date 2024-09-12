@@ -5,12 +5,20 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using FluentValidation.AspNetCore;
+using Core.Models;
+using API_First_Project.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
 // Add services to the container.
-builder.Services.AddControllers();
+#pragma warning disable CS0618 // Type or member is obsolete
+builder.Services.AddControllers(options=> {
+    // Disable the default data annotation validation
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+}).AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<CreateUsersCommand>());
+#pragma warning restore CS0618 // Type or member is obsolete
 
 // Add JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -19,7 +27,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateAudience = true, 
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
@@ -51,8 +59,10 @@ builder.Logging.AddConsole();
 // Configure Cashing
 builder.Services.AddMemoryCache();
 
-// COnfigure JWT
+// Configure JWT
 //builder.Services.Configure<JWT>(Configuration.GetSection("JWT"));
+
+
 
 var app = builder.Build();
 
