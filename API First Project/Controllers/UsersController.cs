@@ -11,28 +11,35 @@ using Core.IUnitOfWork;
 using API_First_Project.Commands;
 using API_First_Project.Dtos;
 using API_First_Project.Mappers;
+using API_First_Project.ErrorResponse;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API_First_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController(IUnitOfWork unitOfWork) : ControllerBase
+    public class UsersController(IUnitOfWork unitOfWork, IConfiguration config) : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
+        private readonly IConfiguration _config = config;
 
+        [Authorize]
         [HttpGet]
         [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<UserDto>>> Get()
         {
-            var users = await _unitOfWork.Users.GetAsync();
-
+            var users = await _unitOfWork.Users.GetAsync(orderBy:q=> q.OrderBy(u=>u.FirstName));
             var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
             return Ok(new
             {
                 Users = userDtos,
-                UserWithTenant = userDtos,
-                Status = "Haaasdas"
+                Status = StatusCodes.Status200OK
             });
         }
 
@@ -47,7 +54,11 @@ namespace API_First_Project.Controllers
                 return NotFound();
             }
 
-            return Ok(UsersMapper.ToUserDto(user));
+            return Ok(new
+            {
+                User = UsersMapper.ToUserDto(user),
+                Status = StatusCodes.Status200OK
+            });
 
         }
 
@@ -56,21 +67,35 @@ namespace API_First_Project.Controllers
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateUsersCommand command)
         {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                   .Where(ms => ms.Value?.Errors.Count > 0)
+                   .ToDictionary(
+                       kvp => kvp.Key,
+                       kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).FirstOrDefault()
+                   );
+
+                return BadRequest(new
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Error happened in validating data",
+                    Error = errors
+                });
+            }
 
             // Add Unique PhoneNumber Validation
             var phoneExists = await _unitOfWork.Users.FindAsync(u => u.PhoneNumber == command.PhoneNumber);
             if (phoneExists.Any())
             {
-                //return BadRequest("PHONE_ALREADY_EXSIST", "Phone number exists in the database, it has to be unique");
+                Dictionary<string, string> errors  = new Dictionary<string, string>();
+                errors.Add("PHONE_NUMBER", "Phone number exists in the database");
 
                 return BadRequest(new
                 {
-                    Message = "Validation failed.",
-                    Details = "Review the errors and correct them",
-                    Errors = new Dictionary<string, string>
-                    {
-                        { "phoneNumber", "Phone number exists in the database, it has to be unique" },
-                    }
+                    Status = StatusCodes.Status400BadRequest,
+                    Message = "Error in validating data",
+                    Error =  errors
                 });
             }
 
@@ -107,14 +132,13 @@ namespace API_First_Project.Controllers
                 var phoneExists = await _unitOfWork.Users.FindSingleAsync(u => u.PhoneNumber == command.PhoneNumber);
                 if (phoneExists != null)
                 {
+                    Dictionary<string,string> errors = new Dictionary<string, string>();
+                    errors.Add("PHONE_NUMBER", "Phone number exists in the database");
                     return BadRequest(new
                     {
-                        Message = "Validation failed.",
-                        Details = "Review the errors and correct them",
-                        Errors = new Dictionary<string, string>
-                        {
-                            { "phoneNumber", "Phone number exists in the database, it has to be unique" }
-                        }
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Error in validating data",
+                        Errors = errors
                     });
                 }
             }
@@ -124,14 +148,13 @@ namespace API_First_Project.Controllers
                 var emailExists = await _unitOfWork.Users.FindAsync(u => u.Email == command.Email);
                 if (emailExists.Any())
                 {
+                    Dictionary<string, string> errors = new Dictionary<string, string>();
+                    errors.Add("EMAIL_ADDRESS", "Email address exists in the database");
                     return BadRequest(new
                     {
-                        Message = "Validation failed.",
-                        Details = "Review the errors and correct them",
-                        Errors = new Dictionary<string, string>
-                        {
-                            { "Email", "Email address exists in the database, it has to be unique" }
-                        }
+                        Status = StatusCodes.Status400BadRequest,
+                        Message = "Error in validating data",
+                        Errors = errors
                     });
                 }
             }
@@ -145,10 +168,13 @@ namespace API_First_Project.Controllers
             _unitOfWork.Users.Update(user);
             await _unitOfWork.SaveAsync();
 
-            return Ok(UsersMapper.ToUserDto(user));
+            return Ok(new
+            {
+                User = UsersMapper.ToUserDto(user),
+                Status = StatusCodes.Status200OK
+            });
         }
 
-        // DELETE: api/Users/1
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
@@ -163,7 +189,11 @@ namespace API_First_Project.Controllers
             _unitOfWork.Users.Delete(user);
             await _unitOfWork.SaveAsync();
 
-            return Ok();
+            return Ok(new
+            {
+                Status = StatusCodes.Status200OK,
+                Message = "User deleted"
+            });
         }
 
         [HttpGet]
@@ -183,8 +213,66 @@ namespace API_First_Project.Controllers
         {
             throw new Exception("This is a test exception to check exception handling middleware.");
         }
+
+
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] UserLogin login)
+        {
+            // Simple validation for demo purposes (replace with real validation logic)
+            if (login.Email == "yaghi@gmail.com" && login.FirstName == "password")
+            {
+                var token = GenerateJwtToken(login);
+                return Ok(new { token });
+            }
+
+            return Unauthorized();
+        }
+
+        private string GenerateJwtToken(UserLogin login)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+            new Claim(JwtRegisteredClaimNames.Sub, login.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_config["Jwt:ExpiresInMinutes"])),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        [Authorize]
+        [HttpGet("userinfo")]
+        public IActionResult GetTokenInfo()
+        {
+            var claims = User.Claims.Select(c => new
+            {
+                Type = c.Type,
+                Value = c.Value
+            });
+
+            return Ok(new { Claims = claims });
+        }
     }
+
+    public class UserLogin
+    {
+        public string Email { get; set; }
+        public string FirstName { get; set; }
+    }
+
+
 }
+
 
 
 

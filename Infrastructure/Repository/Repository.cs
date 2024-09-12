@@ -24,10 +24,19 @@ namespace Infrastructure.Repository
             return await _dbSet.FindAsync(id);
         }
 
-        public async Task<IEnumerable<T>> GetAsync()
+        public async Task<IEnumerable<T>> GetAsync(Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
         {
-            return await _dbSet.ToListAsync();
+            IQueryable<T> query = _dbSet;
+
+            if (orderBy != null)
+            {
+                query = orderBy(query);
+            }
+
+            // Return the ordered or unordered list
+            return await query.ToListAsync();
         }
+
 
         public async Task AddAsync(T entity)
         {

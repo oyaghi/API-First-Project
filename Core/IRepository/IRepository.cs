@@ -6,7 +6,7 @@ namespace Core.IRepository
     {
         Task<T?> GetByIdAsync(int id);
 
-        Task<IEnumerable<T>> GetAsync();
+        Task<IEnumerable<T>> GetAsync(Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
 
         Task AddAsync(T entity);
 
