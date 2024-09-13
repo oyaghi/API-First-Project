@@ -27,6 +27,7 @@ namespace Core.Models
         [Phone]
         public string PhoneNumber { get; set; } = string.Empty;
 
-
+        public int TenantId { get; set; }
+        public Tenant Tenant { get; set; } = null!;
     }
 }

@@ -18,6 +18,7 @@ namespace Infrastructure.Data
         }
 
         public DbSet<User> users { get; set; }
+        public DbSet<Tenant> tenants { get; set; }
 
         // Lazy loading Config 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

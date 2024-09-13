@@ -45,10 +45,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Database Config with lazy loading 
-builder.Services.AddDbContext<TestingDbContext>(option =>
-{
-    option.UseSqlServer(builder.Configuration.GetConnectionString("conn")).UseLazyLoadingProxies();
-});
+builder.Services.AddDbContext<TestingDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("conn"),
+        b => b.MigrationsAssembly("Infrastructure")).UseLazyLoadingProxies());
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
