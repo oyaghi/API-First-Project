@@ -10,10 +10,13 @@ public class UnitOfWork : IUnitOfWork
 
     public IRepository<User> Users { get; private set; }
 
+    public IRepository<Tenant> Tenants { get; private set; }
+
     public UnitOfWork(TestingDbContext context)
     {
         _context = context;
         Users = new Repository<User>(_context);
+        Tenants = new Repository<Tenant>(_context);
     }
 
     public async Task<int> SaveAsync()

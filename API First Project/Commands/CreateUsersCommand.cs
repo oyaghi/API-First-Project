@@ -51,14 +51,22 @@ namespace API_First_Project.Commands
         {
             // Assuming synchronous method in your repository
             var phoneExists = _unitOfWork.Users.FindSingleAsync(u => u.PhoneNumber == phoneNumber);
-            return phoneExists == null;
+            if(phoneExists == null)
+            {
+                return false;
+            }
+            return true;
         }
 
         private bool EmailAddressNotExists(string email)
         {
             // Assuming synchronous method in your repository
             var emailExists = _unitOfWork.Users.FindSingleAsync(u => u.Email == email);
-            return emailExists == null;
+            if(emailExists == null)
+            {
+                return false;
+            }
+            return true;
         }
 
     }

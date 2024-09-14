@@ -11,13 +11,20 @@ using API_First_Project.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 // Add services to the container.
 #pragma warning disable CS0618 // Type or member is obsolete
-builder.Services.AddControllers(options=> {
+builder.Services.AddControllers(options => {
     // Disable the default data annotation validation
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
-}).AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<CreateUsersCommand>());
+})
+.AddFluentValidation(fv =>
+{
+    // Register validators from the assembly containing CreateUsersCommand
+    fv.RegisterValidatorsFromAssemblyContaining<CreateUsersCommand>();
+
+    // Register validators from the assembly containing UpdateUserCommand
+    fv.RegisterValidatorsFromAssemblyContaining<UpdateUserCommand>();
+});
 #pragma warning restore CS0618 // Type or member is obsolete
 
 // Add JWT Authentication
