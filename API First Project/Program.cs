@@ -8,6 +8,7 @@ using System.Text;
 using FluentValidation.AspNetCore;
 using Core.Models;
 using API_First_Project.Commands;
+using Infrastructure.Services.TenantIdGetter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,7 @@ builder.Services.AddDbContext<TestingDbContext>(options =>
         b => b.MigrationsAssembly("Infrastructure")).UseLazyLoadingProxies());
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ITenantService, TenantService>();
 
 // Configure logging
 builder.Logging.ClearProviders();

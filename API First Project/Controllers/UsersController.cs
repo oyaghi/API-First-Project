@@ -35,20 +35,13 @@ namespace API_First_Project.Controllers
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<UserDto>>> Get()
         {
-            var tenantId = GetTenantId();
-            if (tenantId > 0)
-            {
-                var users = await _unitOfWork.Users.FindAsync(
-                filter: f => f.TenantId == tenantId,
-                orderBy: q => q.OrderBy(u => u.FirstName));
+                var users = await _unitOfWork.Users.GetAsync();
                 var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
                 return Ok(new
                 {
                     Users = userDtos,
                     Status = StatusCodes.Status200OK
                 });
-            }
-            return Unauthorized();
         }
 
         [Authorize]
@@ -241,7 +234,7 @@ namespace API_First_Project.Controllers
 
     public class Login
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 
 }
