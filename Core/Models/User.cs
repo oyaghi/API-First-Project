@@ -1,8 +1,9 @@
 ﻿using Core.Enums;
 using System.ComponentModel.DataAnnotations;
+
 namespace Core.Models
 {
-    public class User
+    public class User : ITenantEntity
     {
         [Key]
         public int Id { get; set; }

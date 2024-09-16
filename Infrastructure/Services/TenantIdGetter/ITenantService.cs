@@ -28,10 +28,9 @@ namespace Infrastructure.Services.TenantIdGetter
         {
             var user = _httpContextAccessor.HttpContext?.User;
 
-            // Return 0 if there is no user or tenantId claim is not found
             if (user == null)
             {
-                return 0; // No user context, so return default tenant ID (0)
+                return 0; 
             }
 
             var tenantIdClaim = user.Claims.FirstOrDefault(c => c.Type == "tenantId");
@@ -40,7 +39,7 @@ namespace Infrastructure.Services.TenantIdGetter
                 return tenantId;
             }
 
-            return 0; // Return default tenant ID (0) if tenantId claim is not found or invalid
+            return 0; 
         }
 
     }

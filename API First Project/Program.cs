@@ -9,6 +9,7 @@ using FluentValidation.AspNetCore;
 using Core.Models;
 using API_First_Project.Commands;
 using Infrastructure.Services.TenantIdGetter;
+using Newtonsoft.Json.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,12 +66,14 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// Configure Cashing
+// Configure Cashing  (IN progress)(Not used yet)
 builder.Services.AddMemoryCache();
 
-// Configure JWT
-//builder.Services.Configure<JWT>(Configuration.GetSection("JWT"));
+// IHttpClientFactory Regiser 
+builder.Services.AddHttpClient();
 
+// Config HttpClient Service 
+builder.Services.AddScoped<CatFactService>();
 
 
 var app = builder.Build();

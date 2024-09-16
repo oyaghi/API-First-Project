@@ -1,10 +1,13 @@
 ﻿using Core.IRepository;
+using Core.IUnitOfWork;
+using Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using X.PagedList;
 
 namespace Infrastructure.Repository
 {
@@ -24,19 +27,21 @@ namespace Infrastructure.Repository
             return await _dbSet.FindAsync(id);
         }
 
-        public async Task<IEnumerable<T>> GetAsync(Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
+        public async Task<IEnumerable<T>> GetAsync( Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null!)
         {
             IQueryable<T> query = _dbSet;
 
+            // Apply pagination
+          
             if (orderBy != null)
             {
                 query = orderBy(query);
             }
 
-            // Return the ordered or unordered list
+          
+
             return await query.ToListAsync();
         }
-
 
         public async Task AddAsync(T entity)
         {
@@ -53,11 +58,11 @@ namespace Infrastructure.Repository
             _dbSet.Remove(entity);
         }
 
-
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null)
         {
             IQueryable<T> query = _dbSet.Where(filter);
 
+           
             if (orderBy != null)
             {
                 query = orderBy(query);
@@ -71,8 +76,6 @@ namespace Infrastructure.Repository
             var query = await _dbSet.Where(filter).SingleOrDefaultAsync();
             return query;
         }
-
-
     }
 }
 
