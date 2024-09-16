@@ -1,5 +1,6 @@
 ﻿using Core.IRepository;
 using Core.IUnitOfWork;
+using Core.MetaData;
 using Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -7,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using X.PagedList;
+
 
 namespace Infrastructure.Repository
 {
@@ -75,6 +76,31 @@ namespace Infrastructure.Repository
         {
             var query = await _dbSet.Where(filter).SingleOrDefaultAsync();
             return query;
+        }
+
+        public async Task<PagedResult<T>> GetPagedAsync(int pageNumber,int pageSize)
+        {
+            IQueryable<T> query = _dbSet.AsNoTracking();
+
+            int rowCount = await query.CountAsync();
+
+            var pagedData = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            int pageCount = (int)Math.Ceiling(rowCount / (double)pageSize);
+
+            var result = new PagedResult<T>
+            {
+                Results = pagedData,
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+                RowCount = rowCount,
+                PageCount = pageCount
+            };
+
+            return result;
         }
     }
 }

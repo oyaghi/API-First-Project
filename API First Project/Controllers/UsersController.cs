@@ -33,16 +33,30 @@ namespace API_First_Project.Controllers
         [Authorize]
         [HttpGet]
         [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<UserDto>>> Get()
+        public async Task<ActionResult> Get(int pageNumber, int pageSize)
         {
-            var users = await _unitOfWork.Users.GetAsync();
-            var userDtos = users.Select(user => UsersMapper.ToUserDto(user)).ToList();
+            // Fetch paged data from the repository
+            var pagedObjectUsers = await _unitOfWork.Users.GetPagedAsync(pageNumber, pageSize);
 
-            return Ok(new
-            { 
-                Users = userDtos
-            });
+            // Map each User to UserDto
+            var mappedUsers = pagedObjectUsers.Results
+                .Select(user => UsersMapper.ToUserDto(user))
+                .ToList();
+
+            // Prepare the response
+            var response = new
+            {
+                Users = mappedUsers,
+                pagedObjectUsers.CurrentPage,
+                pagedObjectUsers.PageSize,
+                pagedObjectUsers.RowCount,
+                pagedObjectUsers.PageCount
+            };
+
+            // Return the response with status 200 OK
+            return Ok(response);
         }
+
 
         [Authorize]
         [HttpGet("{id}")]
