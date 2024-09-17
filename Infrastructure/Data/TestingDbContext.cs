@@ -1,7 +1,12 @@
-﻿using Core;
+﻿using Castle.Core.Resource;
+using Core;
+using Core.Enums;
 using Core.Models;
+using Infrastructure.ModelConfigurations;
 using Infrastructure.Services.TenantIdGetter;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Infrastructure.Data
 {
@@ -16,13 +21,38 @@ namespace Infrastructure.Data
             _tenantId = _tenantService.GetTenantId();
         }
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            // Json Column 
+            configurationBuilder.Properties<List<string>>().HaveConversion<StringListConverter>();
+            
+            base.ConfigureConventions(configurationBuilder);
+        }
+
+        private class StringListConverter : ValueConverter<List<string>, string> 
+        {
+            public StringListConverter():
+                base(v=> string.Join(", ", v!),
+                    v=> v.Split(',', StringSplitOptions.TrimEntries).ToList())
+            {
+
+            }
+        }
+
         public DbSet<User> Users { get; set; }
         public DbSet<Tenant> Tenants { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Global Query filter 
             modelBuilder.Entity<User>().HasQueryFilter(u => u.TenantId == _tenantId);
 
+            // User Config file 
+            modelBuilder.ApplyConfiguration(new UserConfiguration());
+
+            // Config User.Setting Json column
+            modelBuilder.Entity<User>().OwnsOne(u => u.Setting, options =>
+            options.ToJson());
             base.OnModelCreating(modelBuilder);
         }
 

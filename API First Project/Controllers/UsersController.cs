@@ -20,6 +20,10 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Primitives;
 using Infrastructure.Services.TenantIdGetter;
+using NuGet.Configuration;
+using System.Text.Json;
+using System.Runtime.InteropServices;
+using Newtonsoft.Json;
 
 namespace API_First_Project.Controllers
 {
@@ -35,15 +39,12 @@ namespace API_First_Project.Controllers
         [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult> Get(int pageNumber, int pageSize)
         {
-            // Fetch paged data from the repository
             var pagedObjectUsers = await _unitOfWork.Users.GetPagedAsync(pageNumber, pageSize);
 
-            // Map each User to UserDto
             var mappedUsers = pagedObjectUsers.Results
                 .Select(user => UsersMapper.ToUserDto(user))
                 .ToList();
 
-            // Prepare the response
             var response = new
             {
                 Users = mappedUsers,
@@ -53,7 +54,6 @@ namespace API_First_Project.Controllers
                 pagedObjectUsers.PageCount
             };
 
-            // Return the response with status 200 OK
             return Ok(response);
         }
 
@@ -82,7 +82,7 @@ namespace API_First_Project.Controllers
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateUsersCommand command)
         {
-            
+
             var phoneExists = await _unitOfWork.Users.FindSingleAsync(u => u.PhoneNumber == command.PhoneNumber);
             if (phoneExists != null)
             {
@@ -109,7 +109,13 @@ namespace API_First_Project.Controllers
                 FirstName = command.FirstName,
                 Lastname = command.Lastname,
                 PhoneNumber = command.PhoneNumber,
-                Gender = command.Gender
+                Gender = command.Gender,
+                Setting = new User.Settings
+                {
+                    Language = command.Setting.Language,
+                    Color = command.Setting.Color,
+                    Theme = command.Setting.Theme
+                }
             };
 
             await _unitOfWork.Users.AddAsync(user);
@@ -188,41 +194,35 @@ namespace API_First_Project.Controllers
             _unitOfWork.Users.Delete(user);
             await _unitOfWork.SaveAsync();
 
-            return Ok(new
-            {
-                Message = "User deleted"
-            });
+            return Ok();
         }
 
-        //[HttpGet]
-        //[Route("/test")]
-        //public async Task<ActionResult<IEnumerable<UserDto>>> GetFilterOrderBy()
-        //{
-        //    var users = await _unitOfWork.Users.FindAsync(
-        //        u => u.Lastname == "yaghi",
-        //        o => o.OrderBy(u => u.FirstName)
-        //    );
 
-        //    return Ok(users);
-        //}
+        [Authorize]
+        [HttpGet("JsonTest")]
+        [ProducesResponseType(typeof(List<UserSettingDto>), StatusCodes.Status200OK)]
+        public async Task<IEnumerable<UserSettingDto>> GetJson()
+        {
+            var users = await _unitOfWork.Users.GetAsync();
 
-        //[HttpGet("throw")]
-        //public IActionResult ThrowException()
-        //{
-        //    throw new Exception("This is a test exception to check exception handling middleware.");
-        //} 
+            var filteredUsers = users.Where(u => u.Setting.Language == "Arabic").ToList();
+
+            var userDtos = filteredUsers.Select(u => new UserSettingDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FirstName = u.FirstName,
+                Lastname = u.Lastname,
+                Setting = new UserSettingDto.SettingDto 
+                {
+                    Language = u.Setting.Language,
+                    Color = u.Setting.Color,
+                    Theme = u.Setting.Theme
+                }
+            }).ToList();
+
+            return userDtos;
+        }
+
     }
 }
-
-
-
-
-// Alert: {
-//"error": "An unexpected error occurred. Please try again later.",
-//    "details": "A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently
-//    using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913."
-//}
-
-
-// I want you to create a CustomControllerBase that will override the BadRequest, so it will return something like this:         return Problem(detail: message, statusCode: StatusCodes.Status400BadRequest, title: status);
-

@@ -38,9 +38,6 @@ namespace Infrastructure.Repository
             {
                 query = orderBy(query);
             }
-
-          
-
             return await query.ToListAsync();
         }
 
