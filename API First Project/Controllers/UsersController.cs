@@ -24,15 +24,19 @@ using NuGet.Configuration;
 using System.Text.Json;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
+using FluentValidation;
+using FluentValidation.Results;
 
 namespace API_First_Project.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UsersController(IUnitOfWork unitOfWork, ITenantService tenantService) : CustomControllerBase
+    public class UsersController(IUnitOfWork unitOfWork, ITenantService tenantService, IValidator<CreateUsersCommand> createUsersCommandValidator) : CustomControllerBase
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly ITenantService _tenantService = tenantService;
+        private readonly IValidator<CreateUsersCommand> _createUsersCommandValidator = createUsersCommandValidator;
+
 
         [Authorize]
         [HttpGet]
@@ -82,14 +86,39 @@ namespace API_First_Project.Controllers
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] CreateUsersCommand command)
         {
+            if (command == null)
+            {
+                return BadRequest(new {
+                    title = "Bad Request",
+                    detail = "No JSON object provided",
+                    statusCode = 400
+
+                });
+            }
+            ValidationResult result = _createUsersCommandValidator.Validate(command);
+
+            if (!result.IsValid)
+            {
+                var errors = result.Errors
+                    .Select(e => new { field = e.PropertyName, message = e.ErrorMessage })
+                    .ToList();
+
+                return BadRequest(new {
+                    title = "Bad Request",
+                    detail = errors,
+                    statusCode = 400
+                });
+            }
 
             var phoneExists = await _unitOfWork.Users.FindSingleAsync(u => u.PhoneNumber == command.PhoneNumber);
             if (phoneExists != null)
             {
                 return BadRequest(new
                 {
-                    status = "Phone_Already_Exists",
-                    message = "Phone number must be Unique"
+                    title = "Phone_Already_Exists",
+                    detail = "Phone number must be Unique",
+                    statusCode = 400
+
                 });
             }
 
@@ -98,8 +127,9 @@ namespace API_First_Project.Controllers
             {
                 return BadRequest(new
                 {
-                    status = "Email_Aleady_Exists",
-                    message = "Email address must be Unique"
+                    title = "Email_Aleady_Exists",
+                    detail = "Email address must be Unique",
+                    statusCode = 400
                 });
             }
 
@@ -145,8 +175,9 @@ namespace API_First_Project.Controllers
                 {
                     return BadRequest(new
                     {
-                        status = "Phone_Already_Exists",
-                        message = "Phone number must be Unique"
+                        title = "Phone_Already_Exists",
+                        detail = "Phone number must be Unique",
+                        statusCode = 400
                     });
                 }
             }
@@ -158,8 +189,9 @@ namespace API_First_Project.Controllers
                 {
                     return BadRequest(new
                     {
-                        status = "Email_Aleady_Exists",
-                        message = "Email address must be Unique"
+                        title = "Email_Aleady_Exists",
+                        detail = "Email address must be Unique",
+                        statusCode = 400
                     });
                 }
             }

@@ -9,8 +9,6 @@ namespace API_First_Project.Commands
 {
     public class CreateUsersCommand
     {
-
-
         public string Email { get; set; } = string.Empty;
 
         public string FirstName { get; set; } = string.Empty;
@@ -30,20 +28,6 @@ namespace API_First_Project.Commands
             public string Language { get; set; } = null!;
             public string Color { get; set; } = null!;
             public string Theme { get; set; } = null!;
-        }
-    }
-
-    public class CreateUsersCommandValidator : AbstractValidator<CreateUsersCommand>
-    {
-
-        public CreateUsersCommandValidator()
-        {
-
-            RuleFor(command => command.FirstName)
-                .NotEmpty().WithMessage("First name is required.");
-
-            RuleFor(command => command.Lastname)
-                .NotEmpty().WithMessage("Last name is required.");
         }
     }
 }

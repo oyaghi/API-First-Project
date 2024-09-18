@@ -5,7 +5,6 @@ using Core.Models;
 using Infrastructure.ModelConfigurations;
 using Infrastructure.Services.TenantIdGetter;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Infrastructure.Data
@@ -25,17 +24,16 @@ namespace Infrastructure.Data
         {
             // Json Column 
             configurationBuilder.Properties<List<string>>().HaveConversion<StringListConverter>();
-            
+
             base.ConfigureConventions(configurationBuilder);
         }
 
-        private class StringListConverter : ValueConverter<List<string>, string> 
+        private class StringListConverter : ValueConverter<List<string>, string>
         {
-            public StringListConverter():
-                base(v=> string.Join(", ", v!),
-                    v=> v.Split(',', StringSplitOptions.TrimEntries).ToList())
+            public StringListConverter() :
+                base(v => string.Join(", ", v!),
+                    v => v.Split(',', StringSplitOptions.TrimEntries).ToList())
             {
-
             }
         }
 
@@ -81,7 +79,7 @@ namespace Infrastructure.Data
                 entity.Entity.TenantId = tenantId;
             }
 
-          
+
             // Handle the Updated/Modified records 
             var modifiedEntities = ChangeTracker.Entries<ITenantEntity>()
                 .Where(e => e.State == EntityState.Modified);
